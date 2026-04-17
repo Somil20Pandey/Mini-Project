@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CampusDesk – NIET College</title>
+  <link rel="stylesheet" href="style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<!-- ===== AI CHATBOT ===== -->
+<div id="chat-bubble" onclick="toggleChat()" style="position:fixed;bottom:30px;right:30px;width:56px;height:56px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:999;box-shadow:0 8px 32px rgba(59,130,246,0.4);font-size:1.4rem;">🤖</div>
+
+<div id="chat-box" style="display:none;position:fixed;bottom:100px;right:30px;width:340px;height:480px;background:#1a2235;border:1px solid #1e2d45;border-radius:20px;z-index:999;box-shadow:0 24px 64px rgba(0,0,0,0.5);flex-direction:column;overflow:hidden;">
+  
+  <!-- Header -->
+  <div style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="font-size:1.4rem;">🤖</div>
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-weight:700;color:#fff;font-size:0.95rem;">CampusBot</div>
+        <div style="font-size:0.75rem;color:rgba(255,255,255,0.8);">NIET College Assistant</div>
+      </div>
+    </div>
+    <button onclick="toggleChat()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1rem;">✕</button>
+  </div>
+
+  <!-- Messages -->
+  <div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;height:340px;">
+    <div class="bot-msg">👋 Hi! Main <b>CampusBot</b> hun — NIET College ka AI Assistant!<br><br>Main aapki help kar sakta hun:<br>• Issue raise karne mein<br>• Status check karne mein<br>• Department dhundhne mein<br><br>Kya problem hai aapko? 😊</div>
+  </div>
+
+  <!-- Quick Buttons -->
+  <div id="quick-btns" style="padding:8px 12px;display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid #1e2d45;">
+    <button class="qbtn" onclick="quickMsg('WiFi nahi chal raha')">📶 WiFi Issue</button>
+    <button class="qbtn" onclick="quickMsg('Attendance problem hai')">📋 Attendance</button>
+    <button class="qbtn" onclick="quickMsg('Fee receipt chahiye')">💰 Fee Receipt</button>
+    <button class="qbtn" onclick="quickMsg('Mere issues dikhao')">🎫 My Issues</button>
+  </div>
+
+  <!-- Input -->
+  <div style="padding:12px;border-top:1px solid #1e2d45;display:flex;gap:8px;">
+    <input type="text" id="chat-input" placeholder="Message likhो..." onkeypress="if(event.key==='Enter')sendChat()" style="flex:1;background:#111827;border:1px solid #1e2d45;border-radius:8px;padding:10px 12px;color:#f0f4ff;font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;"/>
+    <button onclick="sendChat()" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);border:none;color:#fff;width:38px;height:38px;border-radius:8px;cursor:pointer;font-size:1rem;">→</button>
+  </div>
+</div>
+
+<style>
+.bot-msg { background:#111827; color:#f0f4ff; padding:10px 14px; border-radius:12px 12px 12px 4px; font-size:0.85rem; line-height:1.6; max-width:85%; }
+.user-msg { background:linear-gradient(135deg,#3b82f6,#8b5cf6); color:#fff; padding:10px 14px; border-radius:12px 12px 4px 12px; font-size:0.85rem; line-height:1.6; max-width:85%; align-self:flex-end; }
+.qbtn { background:#111827; border:1px solid #1e2d45; color:#7c8db5; padding:5px 10px; border-radius:20px; font-size:0.75rem; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.2s; }
+.qbtn:hover { border-color:#3b82f6; color:#3b82f6; }
+</style>
+<body>
+
+<!-- ===== LOGIN PAGE ===== -->
+<div id="login-page" class="login-page">
+  <div class="login-box">
+    <div class="login-logo">Campus<span>Desk</span></div>
+    <div class="login-subtitle">NIET College Portal</div>
+    <div class="login-tabs">
+      <button class="ltab active" onclick="switchLoginTab('student')">Student / Faculty</button>
+      <button class="ltab" onclick="switchLoginTab('admin')">Admin</button>
+    </div>
+    <div class="field" style="margin-bottom:14px">
+      <label>Email <span class="req">*</span></label>
+      <input type="email" id="login-email" placeholder="Enter your email"/>
+    </div>
+    <div class="field" style="margin-bottom:20px">
+      <label>Password <span class="req">*</span></label>
+      <input type="password" id="login-password" placeholder="Enter password"/>
+    </div>
+    <div id="login-register-toggle" style="margin-bottom:16px;text-align:center">
+      <span style="font-size:0.85rem;color:var(--muted)">New user? </span>
+      <span style="font-size:0.85rem;color:var(--accent);cursor:pointer;font-weight:600" onclick="toggleRegister()">Register here</span>
+    </div>
+    <div id="register-fields" style="display:none">
+      <div class="field" style="margin-bottom:14px">
+        <label>Full Name <span class="req">*</span></label>
+        <input type="text" id="reg-name" placeholder="Your full name"/>
+      </div>
+      <div class="field" style="margin-bottom:14px">
+        <label>Roll / Employee No. <span class="req">*</span></label>
+        <input type="text" id="reg-roll" placeholder="e.g. 21CSE108"/>
+      </div>
+      <div class="field" style="margin-bottom:14px">
+        <label>Role <span class="req">*</span></label>
+        <select id="reg-role">
+          <option value="">— Select —</option>
+          <option>Student</option>
+          <option>Faculty</option>
+          <option>Staff</option>
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:20px">
+        <label>Department <span class="req">*</span></label>
+        <select id="reg-dept">
+          <option value="">— Select —</option>
+          <option>Computer Science (CSE)</option>
+          <option>Information Technology (IT)</option>
+          <option>Electronics & Communication (ECE)</option>
+          <option>Electrical Engineering (EE)</option>
+          <option>Mechanical Engineering (ME)</option>
+          <option>Civil Engineering (CE)</option>
+          <option>Management (MBA)</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center" id="login-btn" onclick="handleLogin()">Login →</button>
+    <div id="login-error" style="color:var(--danger);font-size:0.82rem;margin-top:10px;text-align:center"></div>
+  </div>
+</div>
+
+<!-- ===== MAIN APP ===== -->
+<div id="main-app" style="display:none">
+
+<nav>
+  <div class="logo">Campus<span>Desk</span></div>
+  <div class="nav-links">
+    <a onclick="showPage('home')">Home</a>
+    <a onclick="showPage('raise')" id="nav-raise">Raise Issue</a>
+    <a onclick="showPage('track')">Track Issues</a>
+    <a onclick="showPage('dashboard')">Dashboard</a>
+    <a onclick="showPage('admin')" id="nav-admin" style="display:none">⚙️ Admin</a>
+    <a onclick="showPage('raise')" class="nav-btn" id="nav-newissue">+ New Issue</a>
+    <a onclick="handleLogout()" style="color:var(--danger)!important">Logout</a>
+  </div>
+</nav>
+
+<!-- HOME -->
+<div id="home" class="page active">
+  <div class="hero">
+    <div class="hero-badge">🎓 NIET College Portal &nbsp;•&nbsp; Students &amp; Faculty</div>
+    <h1>College Services,<br><span class="grad">Tracked &amp; Resolved</span></h1>
+    <p>Raise IT, infrastructure, academic, or admin issues in seconds.</p>
+    <div class="hero-actions">
+      <button class="btn btn-primary" onclick="showPage('raise')">🚀 Raise an Issue</button>
+      <button class="btn btn-outline" onclick="showPage('track')">📋 Track My Issues</button>
+    </div>
+  </div>
+  <div class="stats-strip">
+    <div class="stat"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Issues Raised</div></div>
+    <div class="stat"><div class="stat-num" id="stat-resolved">0</div><div class="stat-label">Resolved</div></div>
+    <div class="stat"><div class="stat-num" id="stat-open">0</div><div class="stat-label">Open</div></div>
+    <div class="stat"><div class="stat-num">8</div><div class="stat-label">Departments</div></div>
+  </div>
+  <div class="section">
+    <div class="section-title">Browse by Category</div>
+    <div class="section-sub">Click any category to raise a pre-filled issue</div>
+    <div class="cards-grid">
+      <div class="cat-card" style="--cat-color:#3b82f6" onclick="openCategory('IT & Technical')"><div class="cat-icon">💻</div><div class="cat-name">IT &amp; Technical</div><div class="cat-desc">Network, WiFi, lab computers, software, printers</div><div class="cat-count">→ 10 issue types</div></div>
+      <div class="cat-card" style="--cat-color:#10b981" onclick="openCategory('Infrastructure')"><div class="cat-icon">🏛️</div><div class="cat-name">Infrastructure</div><div class="cat-desc">Classrooms, labs, washrooms, electricity, water</div><div class="cat-count">→ 10 issue types</div></div>
+      <div class="cat-card" style="--cat-color:#f59e0b" onclick="openCategory('Academic')"><div class="cat-icon">📚</div><div class="cat-name">Academic</div><div class="cat-desc">Timetable, marks, attendance, exam, certificate</div><div class="cat-count">→ 9 issue types</div></div>
+      <div class="cat-card" style="--cat-color:#ef4444" onclick="openCategory('Administration')"><div class="cat-icon">📋</div><div class="cat-name">Administration</div><div class="cat-desc">ID card, fee receipt, scholarship, NOC, bonafide</div><div class="cat-count">→ 8 issue types</div></div>
+      <div class="cat-card" style="--cat-color:#8b5cf6" onclick="openCategory('Hostel & Mess')"><div class="cat-icon">🏠</div><div class="cat-name">Hostel &amp; Mess</div><div class="cat-desc">Room maintenance, food quality, security</div><div class="cat-count">→ 7 issue types</div></div>
+      <div class="cat-card" style="--cat-color:#06b6d4" onclick="openCategory('Library')"><div class="cat-icon">📖</div><div class="cat-name">Library</div><div class="cat-desc">Book availability, access card, digital resources</div><div class="cat-count">→ 6 issue types</div></div>
+      <div class="cat-card" style="--cat-color:#f97316" onclick="openCategory('Sports & Events')"><div class="cat-icon">⚽</div><div class="cat-name">Sports &amp; Events</div><div class="cat-desc">Equipment, ground booking, event permission</div><div class="cat-count">→ 5 issue types</div></div>
+      <div class="cat-card" style="--cat-color:#ec4899" onclick="openCategory('Health & Safety')"><div class="cat-icon">🏥</div><div class="cat-name">Health &amp; Safety</div><div class="cat-desc">Medical facility, safety concern, emergency</div><div class="cat-count">→ 6 issue types</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- RAISE ISSUE -->
+<div id="raise" class="page">
+  <div class="form-container">
+    <div class="form-header"><h2>🎫 Raise New Issue</h2><p>Fill in the details. Your issue will be stored in MySQL database.</p></div>
+    <div class="form-card">
+      <div class="form-row">
+        <div class="field"><label>Full Name <span class="req">*</span></label><input type="text" id="f-name" placeholder="e.g. Rahul Sharma"/></div>
+        <div class="field"><label>Roll / Employee No. <span class="req">*</span></label><input type="text" id="f-roll" placeholder="e.g. 21CSE108"/></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Email <span class="req">*</span></label><input type="email" id="f-email" placeholder="name@niet.ac.in"/></div>
+        <div class="field"><label>Phone No.</label><input type="tel" id="f-phone" placeholder="10-digit number"/></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Role <span class="req">*</span></label>
+          <select id="f-role">
+            <option value="">— Select Role —</option>
+            <option>Student</option><option>Faculty</option><option>Staff</option><option>Research Scholar</option>
+          </select>
+        </div>
+        <div class="field"><label>Department <span class="req">*</span></label>
+          <select id="f-dept">
+            <option value="">— Select Department —</option>
+            <option>Computer Science (CSE)</option><option>Information Technology (IT)</option>
+            <option>Electronics &amp; Communication (ECE)</option><option>Electrical Engineering (EE)</option>
+            <option>Mechanical Engineering (ME)</option><option>Civil Engineering (CE)</option>
+            <option>Mathematics</option><option>Physics</option><option>Management (MBA)</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+      <hr class="form-divider"/>
+      <div class="form-row">
+        <div class="field"><label>Issue Category <span class="req">*</span></label>
+          <select id="f-category" onchange="updateSubcategory()">
+            <option value="">— Select Category —</option>
+            <option>IT &amp; Technical</option><option>Infrastructure</option><option>Academic</option>
+            <option>Administration</option><option>Hostel &amp; Mess</option><option>Library</option>
+            <option>Sports &amp; Events</option><option>Health &amp; Safety</option><option>Other</option>
+          </select>
+        </div>
+        <div class="field"><label>Sub-Category <span class="req">*</span></label>
+          <select id="f-subcategory"><option value="">— Select Category First —</option></select>
+        </div>
+      </div>
+      <div class="form-row full"><div class="field"><label>Issue Title <span class="req">*</span></label><input type="text" id="f-title" placeholder="Brief title of the issue"/></div></div>
+      <div class="form-row full"><div class="field"><label>Detailed Description <span class="req">*</span></label><textarea id="f-desc" placeholder="Describe the issue in detail..."></textarea></div></div>
+      <div class="form-row">
+        <div class="field"><label>Location / Block / Room</label><input type="text" id="f-location" placeholder="e.g. A-Block, Room 201"/></div>
+        <div class="field"><label>Date of Occurrence</label><input type="date" id="f-date"/></div>
+      </div>
+      <hr class="form-divider"/>
+      <div class="field" style="margin-bottom:20px">
+        <label>Priority Level <span class="req">*</span></label>
+        <div class="priority-group">
+          <button class="priority-btn" data-p="low" onclick="setPriority(this)">🟢 Low</button>
+          <button class="priority-btn active" data-p="medium" onclick="setPriority(this)">🟡 Medium</button>
+          <button class="priority-btn" data-p="high" onclick="setPriority(this)">🔴 High</button>
+          <button class="priority-btn" data-p="urgent" onclick="setPriority(this)">🟣 Urgent</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Preferred Resolution Date</label><input type="date" id="f-deadline"/></div>
+        <div class="field"><label>Attachment Link</label><input type="url" id="f-attach" placeholder="Google Drive / image link"/></div>
+      </div>
+      <div class="submit-row">
+        <span class="submit-note">🔒 Data saved to MySQL Database</span>
+        <button class="btn btn-primary" onclick="submitIssue()">Submit Issue →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TRACK -->
+<div id="track" class="page">
+  <div class="track-container">
+    <div class="form-header"><h2>📋 Track Issues</h2><p id="track-subtitle">Your submitted issues.</p></div>
+    <div class="search-bar">
+      <input type="text" id="search-input" placeholder="🔍  Search by title, roll, category..." oninput="renderTickets()"/>
+      <select id="filter-status" onchange="renderTickets()">
+        <option value="">All Status</option>
+        <option value="Open">Open</option><option value="In Progress">In Progress</option>
+        <option value="Resolved">Resolved</option><option value="Closed">Closed</option>
+      </select>
+    </div>
+    <div class="tickets-list" id="tickets-list"><div class="empty-state"><div class="empty-icon">📭</div><p>No issues yet.</p></div></div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="page">
+  <div class="dash-container">
+    <div class="form-header"><h2>📊 Dashboard</h2><p>Live analytics of all issues</p></div>
+    <div class="dash-stats" id="dash-stats"></div>
+    <div class="charts-grid">
+      <div class="chart-card"><div class="chart-title">Issues by Category</div><canvas id="chart-category"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Issues by Status</div><canvas id="chart-status"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Issues by Priority</div><canvas id="chart-priority"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Issues by Department</div><canvas id="chart-dept"></canvas></div>
+    </div>
+    <div style="display:flex;gap:12px;margin:24px 0;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="exportPDF()">📄 Export PDF</button>
+      <button class="btn btn-outline" onclick="exportExcel()">📊 Export Excel</button>
+    </div>
+    <div class="section-title" style="margin-bottom:16px">Recent Issues</div>
+    <div class="tickets-list" id="dash-recent"></div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="admin" class="page">
+  <div class="dash-container">
+    <div class="form-header"><h2>⚙️ Admin Panel</h2><p>Manage all issues — update status, assign department, add remarks</p></div>
+    <div class="search-bar">
+      <input type="text" id="admin-search" placeholder="🔍  Search issues..." oninput="renderAdminTickets()"/>
+      <select id="admin-filter-status" onchange="renderAdminTickets()">
+        <option value="">All Status</option>
+        <option value="Open">Open</option><option value="In Progress">In Progress</option>
+        <option value="Resolved">Resolved</option><option value="Closed">Closed</option>
+      </select>
+      <select id="admin-filter-priority" onchange="renderAdminTickets()">
+        <option value="">All Priority</option>
+        <option value="urgent">Urgent</option><option value="high">High</option>
+        <option value="medium">Medium</option><option value="low">Low</option>
+      </select>
+    </div>
+    <div class="tickets-list" id="admin-tickets-list"><div class="empty-state"><div class="empty-icon">📭</div><p>No issues found.</p></div></div>
+  </div>
+</div>
+
+</div><!-- end main-app -->
+
+<!-- VIEW MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div><div class="modal-label">Ticket Details</div><div id="modal-ticket-id"></div></div>
+      <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- ADMIN EDIT MODAL -->
+<div class="modal-overlay" id="admin-modal-overlay" onclick="closeAdminModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div><div class="modal-label">Update Issue</div><div id="admin-modal-id"></div></div>
+      <button class="modal-close" onclick="closeAdminModalDirect()">✕</button>
+    </div>
+    <div>
+      <div class="field" style="margin-bottom:16px">
+        <label>Status</label>
+        <select id="edit-status">
+          <option>Open</option><option>In Progress</option><option>Resolved</option><option>Closed</option>
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:16px">
+        <label>Assign To Department</label>
+        <select id="edit-assign">
+          <option value="">— Not Assigned —</option>
+          <option>IT Department</option><option>Infrastructure Dept</option><option>Academic Office</option>
+          <option>Administration</option><option>Hostel Office</option><option>Library</option>
+          <option>Sports Dept</option><option>Health Center</option>
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:20px">
+        <label>Admin Remark</label>
+        <textarea id="edit-remark" placeholder="Add a note for the student..." style="min-height:80px"></textarea>
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="saveAdminEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <div class="toast-icon">✅</div>
+  <div><div class="toast-title" id="toast-title">Done!</div><div class="toast-sub" id="toast-sub"></div></div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
